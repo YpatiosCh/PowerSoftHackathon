@@ -80,6 +80,9 @@ export default function StaffPage() {
   }, []);
 
   const updateInventory = async (itemId: string, action: 'plenty' | 'low' | 'sold-out' | 'add-batch') => {
+    // Prevent multiple simultaneous updates
+    if (updating !== null) return;
+    
     setUpdating(itemId);
     try {
       const response = await fetch('/api/inventory', {
@@ -105,6 +108,9 @@ export default function StaffPage() {
       return;
     }
 
+    // Prevent multiple simultaneous updates
+    if (updating !== null) return;
+    
     setUpdating(itemId);
     try {
       const response = await fetch('/api/discount', {
@@ -126,6 +132,9 @@ export default function StaffPage() {
   };
 
   const clearManualDiscount = async (itemId: string) => {
+    // Prevent multiple simultaneous updates
+    if (updating !== null) return;
+    
     setUpdating(itemId);
     try {
       const response = await fetch('/api/discount', {
@@ -144,8 +153,13 @@ export default function StaffPage() {
     }
   };
 
-  const toggleAutoSale = async (itemId: string, enable: boolean) => {
+  const toggleAutoSale = async (itemId: string, currentlyEnabled: boolean) => {
+    // Prevent multiple simultaneous updates
+    if (updating !== null) return;
+    
+    const enable = !currentlyEnabled;
     setUpdating(itemId);
+    
     try {
       const response = await fetch('/api/auto-sale', {
         method: enable ? 'POST' : 'DELETE',
@@ -155,6 +169,9 @@ export default function StaffPage() {
 
       if (response.ok) {
         await fetchItems();
+      } else {
+        // If request failed, revert the optimistic update
+        console.error('Failed to toggle auto-sale');
       }
     } catch (error) {
       console.error('Error toggling auto-sale:', error);
@@ -265,6 +282,9 @@ export default function StaffPage() {
   };
 
   const handleOrder = async (orderId: string, status: 'accepted' | 'declined') => {
+    // Prevent multiple simultaneous updates
+    if (updating !== null) return;
+    
     setUpdating(orderId);
     try {
       const response = await fetch('/api/orders', {
@@ -685,9 +705,9 @@ export default function StaffPage() {
                           <input
                             type="checkbox"
                             checked={autoSaleSettings[item.id] || false}
-                            onChange={(e) => toggleAutoSale(item.id, e.target.checked)}
+                            onChange={() => toggleAutoSale(item.id, autoSaleSettings[item.id] || false)}
                             disabled={isUpdating}
-                            className="w-6 h-6 accent-amber-500 cursor-pointer disabled:opacity-50"
+                            className="w-6 h-6 accent-amber-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                           <div className="flex-1">
                             <span className={`font-bold ${item.isWasteRisk ? 'text-amber-400' : 'text-blue-400'}`}>
